@@ -7,14 +7,14 @@ from scipy.spatial.transform import Rotation as R
 scenario = 'test'
 
 # scene
-scene = pyrender.Scene(bg_color=[0,0,0], ambient_light=[1.0,1.0,1.0])
-r = pyrender.OffscreenRenderer(640,480)
+scene = pyrender.Scene(bg_color=[0, 0, 0], ambient_light=[1.0, 1.0, 1.0])
+r = pyrender.OffscreenRenderer(640, 480)
 
 # light
 light = pyrender.SpotLight(color=np.ones(3), intensity=1.0,
                            innerConeAngle=np.pi/16.0,
                            outerConeAngle=np.pi/6.0)
-scene.add(light,pose=np.identity(4))
+scene.add(light, pose=np.identity(4))
 
 # lumbar mesh
 trimesh_lumbar = trimesh.load('dataset_for_task3/SK55M_texturized_bonemesh.ply')
@@ -33,12 +33,13 @@ tip_node = scene.add(tip_mesh)
 
 # camera intrinsic K from task1
 
-
-
+K = np.array([[500.52156716,   0,         320.29761927],
+              [0,             500.31160805, 239.58855325],
+              [0,             0,                     1]])
 
               
-camera = pyrender.IntrinsicsCamera(fx=K[0,0],fy=K[1,1],cx=K[0,2],cy=K[1,2],znear=0.001,zfar=3)
-scene.add(camera,pose=np.identity(4))
+camera = pyrender.IntrinsicsCamera(fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2], znear=0.001, zfar=3)
+scene.add(camera, pose=np.identity(4))
 
 ######################################################################
 ###          To do 2: Calculate "world_to_camera" pose             ###
@@ -52,14 +53,12 @@ cam_to_marker = np.loadtxt("dataset_for_task3/pose_head/{}.txt".format(scenario)
 
 ###  step 1. calculate "camera_to_world" pose 
 
-
-
+camera_to_world = np.matmul(cam_marker_to_world, cam_to_marker)
 
 ###  step 2. calculate "world_to_camera" pose
 ###          Hint : inverting direction is inversing the matrix
 
-
-
+world_to_camera = np.linalg.inv(camera_to_world)
 
 ######################################################################
 ###             To do 3: By using "world_to_camera" pose,          ###
@@ -67,59 +66,57 @@ cam_to_marker = np.loadtxt("dataset_for_task3/pose_head/{}.txt".format(scenario)
 ######################################################################
 
 # marker to world pose
-lumbar_marker_to_world = np.loadtxt("dataset_for_task3/pose_phantom/{}.txt".format(scenario),delimiter=" ")
+lumbar_marker_to_world = np.loadtxt("dataset_for_task3/pose_phantom/{}.txt".format(scenario), delimiter=" ")
 # lumbar_to_marker_pose
-lumbar_to_marker = np.loadtxt("dataset_for_task3/pose_lumbar/{}.txt".format(scenario),delimiter=" ")
+lumbar_to_marker = np.loadtxt("dataset_for_task3/pose_lumbar/{}.txt".format(scenario), delimiter=" ")
 
 ### step 1. calculate "lumbar_to_world" pose
 
-
-
+lumbar_to_world = np.matmul(lumbar_marker_to_world, lumbar_to_marker)
 
 ### step 2. calculate "lumbar_to_camera" pose by using
 ###         "lumbar_to_world" pose and "world_to_camera" pose
 
+lumbar_to_camera = np.matmul(world_to_camera, lumbar_to_world)
 
-
-
-scene.set_pose(lumbar_node,pose=lumbar_to_cam)
+scene.set_pose(lumbar_node, pose=lumbar_to_camera) # was lumbar_to_cam
 
 # marker to world pose
-tooltip_marker_to_world = np.loadtxt("dataset_for_task3/pose_tool/{}.txt".format(scenario),delimiter=" ")
+tooltip_marker_to_world = np.loadtxt("dataset_for_task3/pose_tool/{}.txt".format(scenario), delimiter=" ")
 # lumbar_to_marker_pose
-tooltip_to_marker = np.loadtxt("dataset_for_task3/pose_tooltip/{}.txt".format(scenario),delimiter=" ")
+tooltip_to_marker = np.loadtxt("dataset_for_task3/pose_tooltip/{}.txt".format(scenario), delimiter=" ")
 
 ### step 1. calculate "tooltip_to_world" pose
 
-
-
+tooltip_to_world = np.matmul(tooltip_marker_to_world, tooltip_to_marker)
 
 ### step 2. calculate "tooltip_to_camera" pose by using
 ###         "tooltip_to_world" pose and "world_to_camera" pose
 
+tooltip_to_camera = np.matmul(world_to_camera, tooltip_to_world)
 
-
-
-scene.set_pose(tip_node,pose=tooltip_to_camera)
+scene.set_pose(tip_node, pose=tooltip_to_camera)
 
 # render
-color,depth = r.render(scene)
+color, depth = r.render(scene)
 
 # load image
-img = plt.imread("dataset_for_task3/rgb_full/{}.png".format(scenario))[:,:,:3]
+img = plt.imread("dataset_for_task3/rgb_full/{}.png".format(scenario))[:, :, :3]
 
 
 ##############################################################################
 ### To do 4 : augment the rendered obj on the image ** WITHOUT FOR LOOP ** ###
 ##############################################################################
 
-#mask = 
+#mask =
+mask2 = color < 1
+img_aug = img * mask2
 #img_aug = 
 
 plt.figure()
-plt.subplot(1,2,1)
+plt.subplot(1, 2, 1)
 plt.imshow(img)
-plt.subplot(1,2,2)
+plt.subplot(1, 2, 2)
 plt.imshow(img_aug)
 plt.show()
 
@@ -127,7 +124,7 @@ plt.show()
 ###  Once everything is setup, you will see tooltip and lumbar are augmented properly
 ###  Now we can check out how this augmentation will help in opaque phantom.
 
-if False:
+if True:
 
     for scenario in range(4):
         
@@ -135,16 +132,66 @@ if False:
         ###  To do 5: copy paste codes from To do2 to To do4 here     ###
         ###           to look at 4 results of training scenarios.      ###
         #################################################################
-        
-        
-        
-        
-        
+
+        # marker to world pose
+        cam_marker_to_world = np.loadtxt("dataset_for_task3/pose_cam/{}.txt".format(scenario), delimiter=" ")
+        # cam_to_marker_pose
+        cam_to_marker = np.loadtxt("dataset_for_task3/pose_head/{}.txt".format(scenario), delimiter=" ")
+
+        ###  step 1. calculate "camera_to_world" pose
+
+        camera_to_world = np.matmul(cam_marker_to_world, cam_to_marker)
+
+        ###  step 2. calculate "world_to_camera" pose
+        ###          Hint : inverting direction is inversing the matrix
+
+        world_to_camera = np.linalg.inv(camera_to_world)
+
+        # marker to world pose
+        lumbar_marker_to_world = np.loadtxt("dataset_for_task3/pose_phantom/{}.txt".format(scenario), delimiter=" ")
+        # lumbar_to_marker_pose
+        lumbar_to_marker = np.loadtxt("dataset_for_task3/pose_lumbar/{}.txt".format(scenario), delimiter=" ")
+
+        ### step 1. calculate "lumbar_to_world" pose
+
+        lumbar_to_world = np.matmul(lumbar_marker_to_world, lumbar_to_marker)
+
+        ### step 2. calculate "lumbar_to_camera" pose by using
+        ###         "lumbar_to_world" pose and "world_to_camera" pose
+
+        lumbar_to_camera = np.matmul(world_to_camera, lumbar_to_world)
+
+        scene.set_pose(lumbar_node, pose=lumbar_to_camera)  # was lumbar_to_cam
+
+        # marker to world pose
+        tooltip_marker_to_world = np.loadtxt("dataset_for_task3/pose_tool/{}.txt".format(scenario), delimiter=" ")
+        # lumbar_to_marker_pose
+        tooltip_to_marker = np.loadtxt("dataset_for_task3/pose_tooltip/{}.txt".format(scenario), delimiter=" ")
+
+        ### step 1. calculate "tooltip_to_world" pose
+
+        tooltip_to_world = np.matmul(tooltip_marker_to_world, tooltip_to_marker)
+
+        ### step 2. calculate "tooltip_to_camera" pose by using
+        ###         "tooltip_to_world" pose and "world_to_camera" pose
+
+        tooltip_to_camera = np.matmul(world_to_camera, tooltip_to_world)
+
+        scene.set_pose(tip_node, pose=tooltip_to_camera)
+
+        # render
+        color, depth = r.render(scene)
+
+        # load image
+        img = plt.imread("dataset_for_task3/rgb_full/{}.png".format(scenario))[:, :, :3]
+
+        mask2 = color < 1
+        img_aug = img * mask2
         
 
         plt.figure()
-        plt.subplot(1,2,1)
+        plt.subplot(1, 2, 1)
         plt.imshow(img)
-        plt.subplot(1,2,2)
+        plt.subplot(1, 2, 2)
         plt.imshow(img_aug)
         plt.show()

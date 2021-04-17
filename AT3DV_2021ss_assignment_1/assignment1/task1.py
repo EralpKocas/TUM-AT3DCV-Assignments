@@ -151,12 +151,9 @@ rot_x[:3, :3] = r_matrix
 
 # modify mesh_pose using factor
 
-#mesh_pose = rot_x * mesh_pose
 mesh_pose = np.matmul(rot_x, mesh_pose)
-print(mesh_pose)
 
 scene.set_pose(mesh_node, mesh_pose)
-
 
 #############################################################################
 ### To do : augment the rendered obj on the image, ** WITHOUT FOR LOOP ** ###
@@ -171,23 +168,23 @@ plt.figure()
 plt.imshow(color)
 plt.show()
 
-
 # calculate mask **without for loop**.
+mask2 = np.array(color < 1)
 
-#mask = np.logical_and(
-#        (np.abs(depth - full_depth) < 1e-6), np.abs(full_depth) > 0
-#    )
+mask3 = np.array(np.nonzero(color))
 
-
+mask = np.where(color < 1, color, 1)
+ones = np.ones(mask.shape)
+mask = ones - mask
 ####  step 2. Augment the rendred object on the image using mask.
 
 img = plt.imread("data_for_task1/000001-color.png")
 
 # mask out image and add rendring **without for loop**.
 
+img = img * mask2
 
-
-
+#img[mask2 == 0] = color[mask2 == 0]
 
 plt.figure()
 plt.imshow(img)

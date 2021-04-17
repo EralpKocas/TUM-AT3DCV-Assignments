@@ -1,4 +1,4 @@
-import pyrender,trimesh
+import pyrender, trimesh
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.spatial.transform import Rotation as R
@@ -12,7 +12,7 @@ K = np.array([[1081.37,       0,  959.5],
               [      0, 1081.37,  539.5],
               [      0,       0,       1]])
    
-camera = pyrender.IntrinsicsCamera(fx=K[0,0],fy=K[1,1],cx=K[0,2],cy=K[1,2],znear=0.001,zfar=3)
+camera = pyrender.IntrinsicsCamera(fx=K[0, 0], fy=K[1, 1], cx=K[0, 2], cy=K[1, 2], znear=0.001, zfar=3)
 scene.add(camera)
 
 # mesh
@@ -21,7 +21,7 @@ mesh = pyrender.Mesh.from_trimesh(trimesh_obj)
 
 # mesh pose
 mesh_pose = np.identity(4)
-mesh_pose[:3,:] = np.loadtxt("data_for_task2/000299-color.txt",delimiter=" ")
+mesh_pose[:3, :] = np.loadtxt("data_for_task2/000299-color.txt",delimiter=" ")
 
 ##########################################################################
 ###   To do : Figure out transform factor between Laval and Pyrender   ###

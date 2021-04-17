@@ -8,7 +8,7 @@ def generate_homogeneous_grid(h,w):
     
     return homogeneous_grid
     
-def bilinear_interpolation_per_pixel(coord,img_source):
+def bilinear_interpolation_per_pixel(coord, img_source):
     
     # 00---------10
     # |    |      |
@@ -23,10 +23,10 @@ def bilinear_interpolation_per_pixel(coord,img_source):
     coord_y_floor = np.floor(coord[1])
     coord_y_ceil  =  coord_y_floor + 1
     
-    coord_00 = np.stack([coord_y_floor,coord_x_floor],-1).astype(int)
-    coord_01 = np.stack([coord_y_ceil ,coord_x_floor],-1).astype(int)
-    coord_10 = np.stack([coord_y_floor,coord_x_ceil],-1).astype(int)
-    coord_11 = np.stack([coord_y_ceil, coord_x_ceil],-1).astype(int)
+    coord_00 = np.stack([coord_y_floor, coord_x_floor], -1).astype(int)
+    coord_01 = np.stack([coord_y_ceil,  coord_x_floor], -1).astype(int)
+    coord_10 = np.stack([coord_y_floor, coord_x_ceil], -1).astype(int)
+    coord_11 = np.stack([coord_y_ceil,  coord_x_ceil], -1).astype(int)
 
     # skip grid value outside of image range to keep away from range error
     if (coord_x_floor < 0 or coord_x_floor >= 640) or (coord_x_ceil < 0 or coord_x_ceil >= 640) \
@@ -39,27 +39,27 @@ def bilinear_interpolation_per_pixel(coord,img_source):
     
     x,y = coord
     
-    #S00 = 
-    #S11 = 
-    #S10 = 
-    #S01 = 
+    S00 = (x - coord_x_floor) * (y - coord_y_floor)
+    S11 = (coord_x_ceil - x) * (coord_y_ceil - y)
+    S10 = (coord_x_ceil - x) * (y - coord_y_floor)
+    S01 = (x - coord_x_floor) * (coord_y_ceil - y)
     
     
     # image is RGB, 3 channel
     rgb = []
     for chan in range(3):
 
-        val_00 = img_source[coord_00[0],coord_00[1],chan]
-        val_01 = img_source[coord_01[0],coord_01[1],chan]
-        val_10 = img_source[coord_10[0],coord_10[1],chan]
-        val_11 = img_source[coord_11[0],coord_11[1],chan]
+        val_00 = img_source[coord_00[0], coord_00[1], chan]
+        val_01 = img_source[coord_01[0], coord_01[1], chan]
+        val_10 = img_source[coord_10[0], coord_10[1], chan]
+        val_11 = img_source[coord_11[0], coord_11[1], chan]
         
         ##################################################################
         ###     To do : Use the formular to get interpolated value     ###
         ###             by summing with proper weights (S00 - S11)     ###
         ##################################################################
     
-        # each_chan = 
+        each_chan = S00 * val_11 + S11 * val_00 + S10 * val_01 + S01 * val_10
         
         rgb.append(each_chan)
         

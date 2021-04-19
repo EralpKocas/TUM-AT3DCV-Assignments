@@ -67,7 +67,7 @@ def bilinear_interpolation_per_pixel(coord, img_source):
     return interpolated
     
     
-def bilinear_interpolation_per_grid(grid,img_source):
+def bilinear_interpolation_per_grid(grid, img_source):
     
     # 00---------10
     # |    |      |
@@ -79,23 +79,23 @@ def bilinear_interpolation_per_grid(grid,img_source):
     n_pixels,_ = grid.shape
     
     # get grid value for each corners
-    grid_x_floor = np.floor(grid[:,0])
-    grid_x_ceil  = grid_x_floor + 1
-    grid_y_floor = np.floor(grid[:,1])
-    grid_y_ceil =  grid_y_floor + 1
+    grid_x_floor = np.floor(grid[:, 0])
+    grid_x_ceil = grid_x_floor + 1
+    grid_y_floor = np.floor(grid[:, 1])
+    grid_y_ceil = grid_y_floor + 1
     
-    grid_00 = np.stack([grid_x_floor,grid_y_floor],-1)
-    grid_01 = np.stack([grid_x_floor, grid_y_ceil],-1)
-    grid_10 = np.stack([ grid_x_ceil,grid_y_floor],-1)
-    grid_11 = np.stack([ grid_x_ceil, grid_y_ceil],-1)
+    grid_00 = np.stack([grid_x_floor, grid_y_floor], -1)
+    grid_01 = np.stack([grid_x_floor, grid_y_ceil], -1)
+    grid_10 = np.stack([grid_x_ceil, grid_y_floor], -1)
+    grid_11 = np.stack([grid_x_ceil, grid_y_ceil], -1)
     
     # calculate mask to zero out grids pointing outside of image range
     mask = np.ones(grid_00.shape[0])
-    mask *= (0 <= grid_00[:,0]) * (grid_00[:,0] < 640) * (0 <= grid_00[:,1]) * (grid_00[:,1] < 480)
-    mask *= (0 <= grid_01[:,0]) * (grid_01[:,0] < 640) * (0 <= grid_01[:,1]) * (grid_01[:,1] < 480)
-    mask *= (0 <= grid_10[:,0]) * (grid_10[:,0] < 640) * (0 <= grid_10[:,1]) * (grid_10[:,1] < 480)
-    mask *= (0 <= grid_11[:,0]) * (grid_11[:,0] < 640) * (0 <= grid_11[:,1]) * (grid_11[:,1] < 480)
-    mask = mask.reshape(n_pixels,1)
+    mask *= (0 <= grid_00[:, 0]) * (grid_00[:, 0] < 640) * (0 <= grid_00[:, 1]) * (grid_00[:, 1] < 480)
+    mask *= (0 <= grid_01[:, 0]) * (grid_01[:, 0] < 640) * (0 <= grid_01[:, 1]) * (grid_01[:, 1] < 480)
+    mask *= (0 <= grid_10[:, 0]) * (grid_10[:, 0] < 640) * (0 <= grid_10[:, 1]) * (grid_10[:, 1] < 480)
+    mask *= (0 <= grid_11[:, 0]) * (grid_11[:, 0] < 640) * (0 <= grid_11[:, 1]) * (grid_11[:, 1] < 480)
+    mask = mask.reshape(n_pixels, 1)
     
     # mask out grid values outside of image range to keep away from range error
     grid_00 = (grid_00*mask).astype(int)
@@ -106,31 +106,32 @@ def bilinear_interpolation_per_grid(grid,img_source):
     #################################################################
     ###     To do : implement code to calculate S00,11,01,10      ###
     #################################################################
-    
 
+    S00 = (grid[:, 0] - grid_x_floor) * (grid[:, 1] - grid_y_floor)
+    S11 = (grid_x_ceil - grid[:, 0]) * (grid_y_ceil - grid[:, 1])
+    S10 = (grid_x_ceil - grid[:, 0]) * (grid[:, 1] - grid_y_floor)
+    S01 = (grid[:, 0] - grid_x_floor) * (grid_y_ceil - grid[:, 1])
 
-
-    
     img = []
     
     # image is RGB, 3channel
     for chan in range(3):
-        val_00 = img_source[grid_00[:,1],grid_00[:,0],np.ones(grid.shape[0],np.int)*chan]
-        val_11 = img_source[grid_11[:,1],grid_11[:,0],np.ones(grid.shape[0],np.int)*chan]
-        val_01 = img_source[grid_01[:,1],grid_01[:,0],np.ones(grid.shape[0],np.int)*chan]
-        val_10 = img_source[grid_10[:,1],grid_10[:,0],np.ones(grid.shape[0],np.int)*chan]
+        val_00 = img_source[grid_00[:, 1], grid_00[:, 0], np.ones(grid.shape[0], np.int)*chan]
+        val_11 = img_source[grid_11[:, 1], grid_11[:, 0], np.ones(grid.shape[0], np.int)*chan]
+        val_01 = img_source[grid_01[:, 1], grid_01[:, 0], np.ones(grid.shape[0], np.int)*chan]
+        val_10 = img_source[grid_10[:, 1], grid_10[:, 0], np.ones(grid.shape[0], np.int)*chan]
         
         ###########################$######################################
         ###     To do : Use the formular to get interpolated value     ###
         ###             by summing with proper weights (S00 - S11)     ###
         ##########################$#######################################
         
-        # each_chan = 
+        each_chan = S00 * val_11 + S11 * val_00 + S10 * val_01 + S01 * val_10
         
         img.append(each_chan)
 
     # mask out values which are pointed from masked grid values
-    interpolated = np.stack(img,-1) * mask
+    interpolated = np.stack(img, -1) * mask
 
     return interpolated
     

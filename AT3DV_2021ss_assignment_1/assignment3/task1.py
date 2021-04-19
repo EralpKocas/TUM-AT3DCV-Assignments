@@ -38,7 +38,7 @@ K_1_inv = np.linalg.inv(K_1)
 #### Note : when we play with coordinate, order is (x,y)
 ####        while when we access the image, order is (y,x)
 
-x, y = 260, 340
+x, y = 100, 40
 point_0 = [x, y, 1]
 depth = depth_0[y, x]
 

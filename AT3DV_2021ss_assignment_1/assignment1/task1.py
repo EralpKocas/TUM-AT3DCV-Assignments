@@ -169,22 +169,22 @@ plt.imshow(color)
 plt.show()
 
 # calculate mask **without for loop**.
-mask2 = np.array(color < 1)
 
-mask3 = np.array(np.nonzero(color))
+mask = np.nonzero(depth)
 
-mask = np.where(color < 1, color, 1)
-ones = np.ones(mask.shape)
-mask = ones - mask
 ####  step 2. Augment the rendred object on the image using mask.
 
 img = plt.imread("data_for_task1/000001-color.png")
 
 # mask out image and add rendring **without for loop**.
 
-img = img * mask2
+img[mask] = 0  # masking
 
-#img[mask2 == 0] = color[mask2 == 0]
+plt.figure()
+plt.imshow(img)
+plt.show()
+
+img[mask] += color[mask] / 255.  # adding rendering
 
 plt.figure()
 plt.imshow(img)

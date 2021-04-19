@@ -21,7 +21,7 @@ mesh = pyrender.Mesh.from_trimesh(trimesh_obj)
 
 # mesh pose
 mesh_pose = np.identity(4)
-mesh_pose[:3, :] = np.loadtxt("data_for_task2/000299-color.txt",delimiter=" ")
+mesh_pose[:3, :] = np.loadtxt("data_for_task2/000299-color.txt", delimiter=" ")
 
 ##########################################################################
 ###   To do : Figure out transform factor between Laval and Pyrender   ###
@@ -34,15 +34,27 @@ mesh_pose[:3, :] = np.loadtxt("data_for_task2/000299-color.txt",delimiter=" ")
 
 # factor 
 
+# no rotation is needed.
+# z is backward
+# x is to the left
+# y is to the up
+# so, same as pyrender.
 
+#      y
+#      ^
+#      |
+#      |
+#      |---->x
+#      -
+#     -
+#   <
+#  z
 
                 
 # modify mesh_pose using factor
 
 
-
-
-mesh_node = scene.add(mesh,pose=mesh_pose)
+mesh_node = scene.add(mesh, pose=mesh_pose)
 
 
 #############################################################################
@@ -52,12 +64,15 @@ mesh_node = scene.add(mesh,pose=mesh_pose)
 ####  step 1. Generate mask for the object using one of rendered images
 ####          (hint : You can directly use conditional statement on numpy array!)
 
-color,depth = r.render(scene)
+color, depth = r.render(scene)
+
+plt.figure()
+plt.imshow(color)
+plt.show()
 
 # calculate mask **without for loop**.
 
-
-
+mask = np.nonzero(depth)
 
 ####  step 2. Augment the rendred object on the image using mask.
 
@@ -65,8 +80,13 @@ img = plt.imread("data_for_task2/000299-color.png")
 
 # mask out image and add rendring **without for loop**
 
+img[mask] = 0  # masking
 
+plt.figure()
+plt.imshow(img)
+plt.show()
 
+img[mask] += color[mask] / 255.  # adding rendering
 
 plt.figure()
 plt.imshow(img)

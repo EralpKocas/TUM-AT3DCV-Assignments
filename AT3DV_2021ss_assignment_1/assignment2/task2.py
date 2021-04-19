@@ -80,10 +80,12 @@ img = plt.imread("dataset_for_task2/rgb_full/0.png")[:, :, :3]
 ### To do 4 : augment the rendered obj on the image ** WITHOUT FOR LOOP ** ###
 ##############################################################################
 
-# mask =
-mask2 = color < 1
-img_aug = img * mask2
-# img_aug =
+mask = np.nonzero(depth)
+
+img_aug = img
+img_aug[mask] = 0  # masking
+
+img_aug[mask] += color[mask] / 255.  # adding rendering
 
 plt.figure()
 plt.subplot(1, 2, 1)

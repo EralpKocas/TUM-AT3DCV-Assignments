@@ -34,11 +34,6 @@ mesh_pose[:3, :] = np.loadtxt("data_for_task3/0.txt", delimiter=" ")
 
 # factor_pose
 
-flip_ori_matrix = np.identity(4)
-flip_ori_matrix[1, 1] = -1
-
-flip_mesh_matrix = np.identity(4)
-flip_mesh_matrix[0, 0] = -1
 
 r_euler = R.from_euler('x', 180, degrees=True)
 r_matrix = r_euler.as_matrix()
@@ -47,16 +42,17 @@ rot_x[:3, :3] = r_matrix
 
 # factor_mesh
 
-factor_mesh = np.matmul(flip_ori_matrix, rot_x)
-factor_mesh = np.matmul(factor_mesh, flip_mesh_matrix)
-print(factor_mesh)
+elt_wise = np.array([[-1, 1, 1, 1],
+                     [1, -1, -1, -1],
+                     [-1, 1, 1, 1],
+                     [-1, 1, 1, 1]])
 
 # modify mesh_pose using factor
 
-mesh_pose = np.matmul(factor_mesh, mesh_pose)
+mesh_pose = np.matmul(rot_x, mesh_pose)
+mesh_pose = np.multiply(elt_wise, mesh_pose)
 
 mesh_node = scene.add(mesh, pose=mesh_pose)
-
 
 #############################################################################
 ### To do : augment the rendered obj on the image, ** WITHOUT FOR LOOP ** ###
@@ -73,7 +69,7 @@ plt.show()
 
 # calculate mask **without for loop**.
 
-mask2 = np.array(color < 1)
+mask = np.nonzero(depth)
 
 ####  step 2. Augment the rendred object on the image using mask.
 
@@ -81,7 +77,13 @@ img = plt.imread("data_for_task3/0.png")[:, :, :3]
 
 # mask out image and add rendring **without for loop**.
 
-img = img * mask2
+img[mask] = 0  # masking
+
+plt.figure()
+plt.imshow(img)
+plt.show()
+
+img[mask] += color[mask] / 255.  # adding rendering
 
 plt.figure()
 plt.imshow(img)

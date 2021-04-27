@@ -1,6 +1,5 @@
 import cv2
 import numpy as np
-from matplotlib import pyplot as plt
 
 
 def undistort_pipe(filename, imgname, mtx, dist, w, h):

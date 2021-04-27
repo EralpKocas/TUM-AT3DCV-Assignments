@@ -23,28 +23,36 @@ R = np.array([[0.999999506646425, -3.18339774658664e-05, 0.000992820983631579],
 T = np.array([-49.9430087222935, 0.0126441058712290, -0.0678600809461142])
 
 
+imgs = ['0000000039.png', '0000000040.png']
+for img in imgs:
+    img_ir1 = cv2.imread('ir1/undist/' + img)
+    img_ir2 = cv2.imread('ir2/undist/' + img)
 
-img_ir1 = cv2.imread('ir1/undist/0000000039.png')
-img_ir2 = cv2.imread('ir2/undist/0000000039.png')
+    output = cv2.stereoRectify(K_ir1, d_ir1, K_ir2, d_ir2, (640, 480), R, T)
 
-output = cv2.stereoRectify(K_ir1, d_ir1, K_ir2, d_ir2, (640, 480), R, T)
+    R1 = output[0]
+    R2 = output[1]
+    P1 = output[2]
+    P2 = output[3]
 
-R1 = output[0]
-R2 = output[1]
-P1 = output[2]
-P2 = output[3]
+    map11, map12 = cv2.initUndistortRectifyMap(K_ir1, d_ir1, R1, P1, (640, 480), cv2.CV_8UC1)
+    map21, map22 = cv2.initUndistortRectifyMap(K_ir2, d_ir2, R2, P2, (640, 480), cv2.CV_8UC1)
 
-map11, map12 = cv2.initUndistortRectifyMap(K_ir1, d_ir1, R1, P1, (640, 480), cv2.CV_8UC1)
-map21, map22 = cv2.initUndistortRectifyMap(K_ir2, d_ir2, R2, P2, (640, 480), cv2.CV_8UC1)
+    img_ir1_rectified = cv2.remap(img_ir1, map11, map12, cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
+    img_ir2_rectified = cv2.remap(img_ir2, map21, map22, cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
 
-img_ir1_rectified = cv2.remap(img_ir1, map11, map12, cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
-img_ir2_rectified = cv2.remap(img_ir2, map21, map22, cv2.INTER_LINEAR, cv2.BORDER_CONSTANT)
+    ir1_rectified_gray = cv2.cvtColor(img_ir1_rectified, cv2.COLOR_BGR2GRAY)
+    ir2_rectified_gray = cv2.cvtColor(img_ir2_rectified, cv2.COLOR_BGR2GRAY)
 
-ir1_rectified_gray = cv2.cvtColor(img_ir1_rectified, cv2.COLOR_BGR2GRAY)
-ir2_rectified_gray = cv2.cvtColor(img_ir2_rectified, cv2.COLOR_BGR2GRAY)
+    stereo = cv2.StereoBM_create(numDisparities=64, blockSize=21)
+    disparity_BM = stereo.compute(ir1_rectified_gray, ir2_rectified_gray)
 
-stereo = cv2.StereoBM_create(numDisparities=64, blockSize=21)
-disparity_BM = stereo.compute(ir1_rectified_gray, ir2_rectified_gray)
-plt.imshow(disparity_BM, "hot")
-plt.colorbar()
-plt.show()
+    plt.imshow(disparity_BM, "hot")
+    plt.colorbar()
+    plt.show()
+
+# 2.3.3 my observation in results of two images
+# The difference is so clear for same color wide areas.
+# The additional IR projection make the result more smooth more and complete, on the other hand
+# in the case of without IR projection, we can see that the wide areas with same color could not
+# be obtained well by our algorithm.

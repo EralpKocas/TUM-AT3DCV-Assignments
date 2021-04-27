@@ -137,7 +137,7 @@ def task2_3_aruco_reference_frame(filename, x):
     img_3d = np.append(img_3d, np.ones((img_3d.shape[0], 1)), axis=1).T
     img_3d = np.matmul(h_matrix, img_3d)
     img_3d = img_3d[0:3, :].T
-    write_ply('out/out_' + str(x) + '.ply', img_3d, colors)
+    write_ply('out_' + str(x) + '.ply', img_3d, colors)
 
 
 task2_1_write_ply()

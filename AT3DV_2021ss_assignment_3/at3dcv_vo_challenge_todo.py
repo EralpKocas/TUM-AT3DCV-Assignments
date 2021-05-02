@@ -72,13 +72,10 @@ class VO:
         # ToDo
         # Not: There is a optical flow method in OpenCV that can help ;) input the old_kps and track them
 
-        opt_flow_params = dict(winSize=(15, 15),
-                         maxLevel=2,
-                         criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
-        curr_kps, status, err = cv2.calcOpticalFlowPyrLK(old_frame, curr_frame, old_kps, None, **opt_flow_params)
-
-        curr_kps = curr_kps[status == 1]
-        old_kps = old_kps[status == 1]
+        opt_flow_params = dict(winSize=(25, 25),
+                         maxLevel=3,
+                         criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 300, 0.001))
+        curr_kps, matches, err = cv2.calcOpticalFlowPyrLK(old_frame, curr_frame, old_kps, None, **opt_flow_params)
 
         ###
 
@@ -200,7 +197,7 @@ class VO:
 def main():
     argument = argparse.ArgumentParser()
     argument.add_argument("--o", help="use ORB", action="store_true")
-    argument.add_argument("--f", help="use Optical Flow", action="store_true")
+    argument.add_argument("--f", help="use Optical Flow", action="store_false")
     argument.add_argument("--l", help="use Loop Closure for PGO", action="store_true")
     args = argument.parse_args()
     orb = args.o

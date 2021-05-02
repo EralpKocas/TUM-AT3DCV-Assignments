@@ -5,9 +5,9 @@ import os
 import argparse
 import numpy as np
 import cv2
-
+import matplotlib.pyplot as plt
 #HINT: Needed for Pose Graph Optimization
-from posegraphoptimizer import PoseGraphOptimizer, getGraphNodePose
+#from posegraphoptimizer import PoseGraphOptimizer, getGraphNodePose
 
 # Util function
 def T_from_R_t(R, t):
@@ -72,7 +72,13 @@ class VO:
         # ToDo
         # Not: There is a optical flow method in OpenCV that can help ;) input the old_kps and track them
 
+        opt_flow_params = dict(winSize=(15, 15),
+                         maxLevel=2,
+                         criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))
+        curr_kps, status, err = cv2.calcOpticalFlowPyrLK(old_frame, curr_frame, old_kps, None, **opt_flow_params)
 
+        curr_kps = curr_kps[status == 1]
+        old_kps = old_kps[status == 1]
 
         ###
 
@@ -84,20 +90,40 @@ class VO:
         if orb:
             # ToDo
             # Hint: again, OpenCV is your friend ;) Tip: maybe you want to improve the feature matching by only taking the best matches...
+            orb_det = cv2.ORB_create()
+            kp1, des1 = orb_det.detectAndCompute(curr_frame, None)
+            kp2, des2 = orb_det.detectAndCompute(old_frame, None)
 
+            matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
+            matches = matcher.match(des1, des2)
+
+            matches = sorted(matches, key=lambda x: x.distance)
 
             ###
         else:  # use SIFT
             # ToDo
             # Hint: Have you heared about the Ratio Test for SIFT?
 
+            sift_det = cv2.xfeatures2d.SIFT_create()
+            kp1, des1 = sift_det.detectAndCompute(curr_frame, None)
+            kp2, des2 = sift_det.detectAndCompute(old_frame, None)
 
+            matcher = cv2.BFMatcher()
+            matches = matcher.knnMatch(des1, des2, k=2)
 
+            good = []
+            for m, n in matches:
+                if m.distance < 0.75 * n.distance:
+                    good.append([m])
+
+            matches = good
             ###
-
-
-        kp1_match = np.array([kp1[mat.queryIdx].pt for mat in matches])
-        kp2_match = np.array([kp2[mat.trainIdx].pt for mat in matches])
+        if orb:
+            kp1_match = np.array([kp1[mat.queryIdx].pt for mat in matches])
+            kp2_match = np.array([kp2[mat.trainIdx].pt for mat in matches])
+        else:
+            kp1_match = np.array([kp1[mat[0].queryIdx].pt for mat in matches])
+            kp2_match = np.array([kp2[mat[0].trainIdx].pt for mat in matches])
 
         return kp1_match, kp2_match, matches
 
@@ -113,9 +139,17 @@ class VO:
 
         # ToDo
         # Hint: Remember the lecture: given the matched keypoints you can compute the Essential matrix and from E you can recover R and t...
+        camera_K = np.identity(3)
+        camera_K[0, 0] = self.camera.fx
+        camera_K[1, 1] = self.camera.fy
+        camera_K[0, 2] = self.camera.cx
+        camera_K[1, 2] = self.camera.cy
+        E, mask = cv2.findEssentialMat(second_keypoints_matched, first_keypoints_matched, camera_K,
+                                            cv2.RANSAC, 0.999, 1.0, 1000)
 
-
-
+        output = cv2.recoverPose(E, second_keypoints_matched, first_keypoints_matched, camera_K, mask=mask)
+        self.curr_R = output[1]
+        self.curr_t = output[2]
         ###
 
         self.relative_T = T_from_R_t(self.curr_R, self.curr_t)
@@ -133,13 +167,22 @@ class VO:
 
         # ToDo
         # Hint: Here we only do the naive way and do everything based on Epipolar Geometry (Essential Matrix). No need for PnP in this tutorial
+        camera_K = np.identity(3)
+        camera_K[0, 0] = self.camera.fx
+        camera_K[1, 1] = self.camera.fy
+        camera_K[0, 2] = self.camera.cx
+        camera_K[1, 2] = self.camera.cy
+        E, mask = cv2.findEssentialMat(curr_kps_matched, old_kps_matched, camera_K,
+                                       cv2.RANSAC, 0.999, 1.0, 1000)
+        mask = np.multiply(mask, 255)
+        output = cv2.recoverPose(E, curr_kps_matched, old_kps_matched, camera_K, mask=mask)
 
-
-
+        R = output[1]
+        t = output[2]
         ###
 
-
         inliners = len(mask[mask == 255])
+
         if (inliners > 20):
             self.relative_T = T_from_R_t(R, t)
             self.curr_t = self.curr_t + self.curr_R.dot(t)
@@ -170,7 +213,7 @@ def main():
 
     #HINT: Adapt path
     image_dir = os.path.realpath("../../dataset/kitti/00/image_0/")
-    pose_path = os.path.realpath("../../dataset/kitti/poses/00.txt")
+    pose_path = os.path.realpath("../../dataset/kitti/00.txt")
 
     with open(pose_path) as f:
         poses_context = f.readlines()
@@ -214,7 +257,6 @@ def main():
     old_frame = second_frame
     old_kps = second_keypoints
 
-
     for index in range(second+1, len(image_list)):
         curr_frame = cv2.imread(image_list[index], 0)
         true_pose = getGT(poses_context, index)
@@ -255,6 +297,7 @@ def main():
 
         #Utilities for Drawing
         curr_t = vo.curr_t
+
         if(index > 2):
             x, y, z = curr_t[0], curr_t[1], curr_t[2]
         else:

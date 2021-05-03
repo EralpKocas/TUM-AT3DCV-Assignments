@@ -5,7 +5,10 @@ import os
 import argparse
 import numpy as np
 import cv2
-import matplotlib.pyplot as plt
+
+from demo_superpoint import SuperPointFrontend
+from demo_superpoint import PointTracker
+
 #HINT: Needed for Pose Graph Optimization
 #from posegraphoptimizer import PoseGraphOptimizer, getGraphNodePose
 
@@ -55,7 +58,7 @@ class Camera:
 
 # Major functions for VO computation
 class VO:
-    def __init__(self, camera):
+    def __init__(self, camera, sp=False):
         self.camera = camera
         self.focal = self.camera.fx
         self.center = (self.camera.cx, self.camera.cy)
@@ -67,6 +70,34 @@ class VO:
         self.relative_T = None
 
         self.detector = cv2.FastFeatureDetector_create(threshold=25, nonmaxSuppression=True)
+        self.sp = sp
+        self.super_point, self.sp_tracker = self.initialize_super_point()
+
+    def initialize_super_point(self):
+        fe = SuperPointFrontend(weights_path='superpoint_v1.pth',
+                                nms_dist=4,
+                                conf_thresh=0.015,
+                                nn_thresh=0.7)
+        tracker = PointTracker(5, nn_thresh=0.7)
+        return fe, tracker
+
+    def sp_feature_matching(self, curr_frame, old_frame):
+        curr_frame = curr_frame.astype(np.float32) / 255.
+        old_frame = old_frame.astype(np.float32) / 255.
+
+        kp1, des1, _ = self.super_point.run(curr_frame)
+        kp2, des2, _ = self.super_point.run(old_frame)
+
+        matches = self.sp_tracker.nn_match_two_way(des1, des2, 0.7)
+
+        kp1 = kp1[:2, :].T
+        kp2 = kp2[:2, :].T
+        matches = matches[:2, :].T
+
+        kp1 = kp1[matches[:, 0].astype(int)]
+        kp2 = kp2[matches[:, 1].astype(int)]
+
+        return kp1, kp2, matches
 
     def featureTracking(self, curr_frame, old_frame, old_kps):
         # ToDo
@@ -87,7 +118,7 @@ class VO:
         if orb:
             # ToDo
             # Hint: again, OpenCV is your friend ;) Tip: maybe you want to improve the feature matching by only taking the best matches...
-            orb_det = cv2.ORB_create()
+            orb_det = cv2.ORB_create(nfeatures=2500, fastThreshold=15)
             kp1, des1 = orb_det.detectAndCompute(curr_frame, None)
             kp2, des2 = orb_det.detectAndCompute(old_frame, None)
 
@@ -95,7 +126,6 @@ class VO:
             matches = matcher.match(des1, des2)
 
             matches = sorted(matches, key=lambda x: x.distance)
-
             ###
         else:  # use SIFT
             # ToDo
@@ -125,14 +155,17 @@ class VO:
         return kp1_match, kp2_match, matches
 
     def initialize(self, first_frame, sceond_frame, of=True, orb=False):
-        if of:
-            first_keypoints = self.detector.detect(first_frame)
-            first_keypoints = np.array([x.pt for x in first_keypoints], dtype=np.float32)
-            second_keypoints_matched, first_keypoints_matched, _ = self.featureTracking(sceond_frame, first_frame,
-                                                                                        first_keypoints)
+        if self.sp:
+            second_keypoints_matched, first_keypoints_matched, _ = self.sp_feature_matching(sceond_frame, first_frame)
         else:
-            second_keypoints_matched, first_keypoints_matched, _ = self.featureMatching(sceond_frame, first_frame,
-                                                                                        orb=orb)
+            if of:
+                first_keypoints = self.detector.detect(first_frame)
+                first_keypoints = np.array([x.pt for x in first_keypoints], dtype=np.float32)
+                second_keypoints_matched, first_keypoints_matched, _ = self.featureTracking(sceond_frame, first_frame,
+                                                                                            first_keypoints)
+            else:
+                second_keypoints_matched, first_keypoints_matched, _ = self.featureMatching(sceond_frame, first_frame,
+                                                                                            orb=orb)
 
         # ToDo
         # Hint: Remember the lecture: given the matched keypoints you can compute the Essential matrix and from E you can recover R and t...
@@ -141,6 +174,7 @@ class VO:
         camera_K[1, 1] = self.camera.fy
         camera_K[0, 2] = self.camera.cx
         camera_K[1, 2] = self.camera.cy
+
         E, mask = cv2.findEssentialMat(second_keypoints_matched, first_keypoints_matched, camera_K,
                                             cv2.RANSAC, 0.999, 1.0, 1000)
 
@@ -154,13 +188,15 @@ class VO:
         return second_keypoints_matched, first_keypoints_matched
 
     def processFrame(self, curr_frame, old_frame, old_kps, of=True, orb=False):
-
-        if of:
-            curr_kps_matched, old_kps_matched, matches = self.featureTracking(curr_frame, old_frame,
-                                                                                           old_kps)
+        if self.sp:
+            curr_kps_matched, old_kps_matched, matches = self.sp_feature_matching(curr_frame, old_frame)
         else:
-            curr_kps_matched, old_kps_matched, matches = self.featureMatching(curr_frame, old_frame,
-                                                                                           orb=orb)
+            if of:
+                curr_kps_matched, old_kps_matched, matches = self.featureTracking(curr_frame, old_frame,
+                                                                                               old_kps)
+            else:
+                curr_kps_matched, old_kps_matched, matches = self.featureMatching(curr_frame, old_frame,
+                                                                                               orb=orb)
 
         # ToDo
         # Hint: Here we only do the naive way and do everything based on Epipolar Geometry (Essential Matrix). No need for PnP in this tutorial
@@ -169,6 +205,7 @@ class VO:
         camera_K[1, 1] = self.camera.fy
         camera_K[0, 2] = self.camera.cx
         camera_K[1, 2] = self.camera.cy
+
         E, mask = cv2.findEssentialMat(curr_kps_matched, old_kps_matched, camera_K,
                                        cv2.RANSAC, 0.999, 1.0, 1000)
         mask = np.multiply(mask, 255)
@@ -197,11 +234,13 @@ class VO:
 def main():
     argument = argparse.ArgumentParser()
     argument.add_argument("--o", help="use ORB", action="store_true")
-    argument.add_argument("--f", help="use Optical Flow", action="store_false")
+    argument.add_argument("--f", help="use Optical Flow", action="store_true")
     argument.add_argument("--l", help="use Loop Closure for PGO", action="store_true")
+    argument.add_argument("--s", help="use SuperPoint", action="store_true")
     args = argument.parse_args()
     orb = args.o
     of = args.f
+    sp = args.s
     loop_closure = args.l
 
     #Hard-coded Loop closure estimates (Needed for PGO); We only take these 2 for now
@@ -225,7 +264,7 @@ def main():
     # Initial VisualOdometry Object
     camera = Camera(1241.0, 376.0, 718.8560,
                     718.8560, 607.1928, 185.2157)
-    vo = VO(camera)
+    vo = VO(camera, sp)
     traj_plot = np.zeros((1000,1000,3), dtype=np.uint8)
 
     # ToDo (PGO)
@@ -314,13 +353,12 @@ def main():
         if k == 27:
             break
 
-
-
         # Update old data
         old_frame = curr_frame
         old_kps = curr_kps
 
     cv2.destroyAllWindows()
+
 
 if __name__ == '__main__':
     main()

@@ -30,7 +30,8 @@ def spectify(points):
     ### Complete for task 3
     # Find the spectral embedding of the cloud
     # input numpy ndarray -> output numpy ndarray
-
+    embedding = SpectralEmbedding(n_components=3)
+    emb = embedding.fit_transform(points)
     return emb
 
 def group_knn(points,seed_points,group_size):
@@ -55,7 +56,7 @@ def vis_points(points):
         o3d.visualization.draw_geometries([points_o3d],mesh_show_wireframe=True)
 
 
-def mesh_parser(mesh,parse_to):
+def mesh_parser(mesh, parse_to):
     # Parses the query mesh into different representations
     if parse_to=='point':
         pc_o3d=o3d.geometry.PointCloud()
@@ -68,15 +69,21 @@ def mesh_parser(mesh,parse_to):
     elif parse_to=='voxel':
         pc_o3d=o3d.geometry.PointCloud()
         ### Complete for task 2
-
+        voxel_grid = o3d.geometry.VoxelGrid.create_from_triangle_mesh(input=mesh, voxel_size=32)
+        voxel_idx = voxel_grid.get_voxels()
+        print(voxel_grid)
+        print(voxel_idx)
+        exit(0)
         return torch.from_numpy(vox_np).to(dtype=torch.float)
     elif parse_to=='spectral':
         pc_o3d=o3d.geometry.PointCloud()
-        pc_o3d=o3d.geometry.TriangleMesh.sample_points_uniformly(mesh,number_of_points=1024)
+        pc_o3d=o3d.geometry.TriangleMesh.sample_points_uniformly(mesh, number_of_points=1024)
         ### Complete for task 3
-
+        pc_np=np.asarray(pc_o3d.points)
+        pc_np=normalize_pc(pc_np)
         spect_np=spectify(pc_np)
-        return #
+        spect_np = np.hstack((pc_np, spect_np))
+        return torch.from_numpy(spect_np).to(dtype=torch.float)
 
     
 

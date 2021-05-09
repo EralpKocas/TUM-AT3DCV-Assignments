@@ -22,7 +22,7 @@ class trainer():
         
         self.criterion = nn.CrossEntropyLoss()
         self.mb_size = loader_train.batch_size
-        self.optimizer = optim.Adam(self.model.parameters(), lr=5e-4)#, betas=(0.9, 0.999))
+        self.optimizer = optim.Adam(self.model.parameters(), lr=1e-4)#, betas=(0.9, 0.999))
         
         report_folder = 'runs/3dclassification_'+self.rep_type
         

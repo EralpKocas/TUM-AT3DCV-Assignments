@@ -10,10 +10,10 @@ def task1():
 
     path_model='model_objs/%s_model.pt'%rep_type
 
-    dataset_train=ChallengeDataset('dataset','train',rep_type)
-    loader_train = DataLoader(dataset_train, batch_size=32,shuffle=True,pin_memory=True,num_workers=4)
-    dataset_test=ChallengeDataset('dataset','test',rep_type)
-    loader_test = DataLoader(dataset_test, batch_size=32,shuffle=True,pin_memory=True,num_workers=4)
+    dataset_train = ChallengeDataset('dataset', 'train', rep_type)
+    loader_train = DataLoader(dataset_train, batch_size=64,shuffle=True, pin_memory=True, num_workers=4)
+    dataset_test = ChallengeDataset('dataset', 'test', rep_type)
+    loader_test = DataLoader(dataset_test, batch_size=64, shuffle=True, pin_memory=True, num_workers=4)
 
     if os.path.isfile(path_model):
         net = torch.load(path_model)
@@ -22,8 +22,8 @@ def task1():
         net = point_model(NUM_CLASSES) # voxel_model(n) or point_model(n) or spectral_model(n)
         print('Training from scratch')
 
-    ch_trainer=trainer(net,loader_train,loader_test,rep_type)
-    ch_trainer.train(1)
+    ch_trainer=trainer(net, loader_train, loader_test, rep_type)
+    ch_trainer.train(50)
 
 def task2():
     rep_type='voxel' # 'voxel','point' or 'spectral'

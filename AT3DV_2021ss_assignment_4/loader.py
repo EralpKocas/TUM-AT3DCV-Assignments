@@ -18,6 +18,12 @@ def normalize_pc(pc_np):
     ### Complete for task 1
     # Normalize the cloud to unit cube
     # input numpy ndarray -> output numpy ndarray
+
+    norm = np.linalg.norm(pc_np)
+    pc_np_norm = pc_np / norm
+    #mean = np.mean(pc_np, axis=0)
+    #pc_np_norm = pc_np - mean
+    #pc_np_norm = pc_np_norm / np.max(np.linalg.norm(pc_np_norm))
     return pc_np_norm
 
 def spectify(points):
@@ -68,7 +74,7 @@ def mesh_parser(mesh,parse_to):
         pc_o3d=o3d.geometry.PointCloud()
         pc_o3d=o3d.geometry.TriangleMesh.sample_points_uniformly(mesh,number_of_points=1024)
         ### Complete for task 3
-        
+
         spect_np=spectify(pc_np)
         return #
 

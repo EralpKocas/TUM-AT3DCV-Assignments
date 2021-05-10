@@ -59,14 +59,35 @@ class point_model(nn.Module):
 
 class voxel_model(nn.Module):
     ### Complete for task 2
-    def __init__(self,num_classes):
+    def __init__(self, num_classes):
         super(voxel_model, self).__init__()
-        self.conv1=nn.Conv3d(1,8,3)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(0.7)
+
+        self.conv1 = nn.Conv3d(1, 8, 6, stride=2)
+        self.bn1 = nn.BatchNorm3d(8)
+
+        self.conv2 = nn.Conv3d(8, 32, 5, stride=2)
+        self.bn2 = nn.BatchNorm3d(32)
+
+        self.conv3 = nn.Conv3d(32, 128, 4, stride=1)
+        self.bn3 = nn.BatchNorm3d(128)
+
+        self.fc1 = nn.Linear(1024, 128)
+        self.bn4 = nn.BatchNorm1d(128)
+
+        self.fc2 = nn.Linear(128, num_classes)
 
 
     def forward(self,x):
-        print(x.shape)
-        exit(0)
+        batch_size = x.shape[0]
+        x = x.view(batch_size, 1, 32, 32, 32)
+        x = self.relu(self.bn1(self.conv1(x)))
+        x = self.relu(self.bn2(self.conv2(x)))
+        x = self.relu(self.bn3(self.conv3(x)))
+        x = x.view(batch_size, -1)
+        x = self.relu(self.bn4(self.fc1(x)))
+        x = self.fc2(self.dropout(x))
         return x
         
 

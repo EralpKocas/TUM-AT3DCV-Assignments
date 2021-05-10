@@ -42,7 +42,7 @@ def task2():
         print('Training from scratch')
 
     ch_trainer=trainer(net,loader_train,loader_test,rep_type)
-    ch_trainer.train(1)
+    ch_trainer.train(10)
 
 def task3():
     rep_type='spectral' # 'voxel','point' or 'spectral'
@@ -61,9 +61,9 @@ def task3():
         print('Training from scratch')
 
     ch_trainer=trainer(net,loader_train,loader_test,rep_type)
-    ch_trainer.train(10)
+    ch_trainer.train(1)
 
 if __name__=='__main__':
     # task1() #run for task1
-    # task2() #run for task2
-    task3() #run for task3
+    task2() #run for task2
+    # task3() #run for task3

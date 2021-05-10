@@ -69,11 +69,14 @@ def mesh_parser(mesh, parse_to):
     elif parse_to=='voxel':
         pc_o3d=o3d.geometry.PointCloud()
         ### Complete for task 2
-        voxel_grid = o3d.geometry.VoxelGrid.create_from_triangle_mesh(input=mesh, voxel_size=32)
-        voxel_idx = voxel_grid.get_voxels()
-        print(voxel_grid)
-        print(voxel_idx)
-        exit(0)
+        mesh.scale(1 / np.max(mesh.get_max_bound() - mesh.get_min_bound()),
+                   center=mesh.get_center())
+        voxel_size = 32
+        voxel_grid = o3d.geometry.VoxelGrid.create_from_triangle_mesh(input=mesh, voxel_size=1/31)
+        voxels = voxel_grid.get_voxels()
+        vox_np = np.zeros((voxel_size, voxel_size, voxel_size))
+        voxel_grid_idxs = np.array([vox.grid_index for vox in voxels])
+        vox_np[voxel_grid_idxs[:, 0], voxel_grid_idxs[:, 1], voxel_grid_idxs[:, 2]] = 1
         return torch.from_numpy(vox_np).to(dtype=torch.float)
     elif parse_to=='spectral':
         pc_o3d=o3d.geometry.PointCloud()
